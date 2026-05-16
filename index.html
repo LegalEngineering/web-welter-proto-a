@@ -15,6 +15,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BW AK - Advokátska kancelária Welter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -22,17 +25,29 @@
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: #fff;
+        :root {
+            --ink: #e8edf6;
+            --ink-dim: #9fb0cc;
+            --accent: #8fb6ef;
+            --line: rgba(143, 182, 239, 0.16);
         }
 
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            background:
+                radial-gradient(1200px 800px at 78% 8%, rgba(36, 62, 112, 0.55), transparent 60%),
+                radial-gradient(900px 700px at 12% 92%, rgba(20, 42, 78, 0.5), transparent 55%),
+                linear-gradient(168deg, #0a0e1a 0%, #0c1428 48%, #0a1120 100%);
+            background-attachment: fixed;
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* === Pozadie: živá právna sieť (canvas) === */
         .parallax-container {
             position: fixed;
-            top: 0;
-            left: 0;
+            inset: 0;
             width: 100%;
             height: 100vh;
             z-index: 1;
@@ -40,60 +55,32 @@
             overflow: hidden;
         }
 
-        .floating-symbol {
+        #netCanvas {
             position: absolute;
-            opacity: 0.7;
-            cursor: pointer;
-            font-weight: bold;
-            pointer-events: auto;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
-        .layer-back {
-            font-size: 22px;
-            color: #5da3fa;
-        }
-
-        .layer-mid {
-            font-size: 20px;
-            color: #7db8ff;
-        }
-
-        .layer-front {
-            font-size: 18px;
-            color: #a0c4ff;
-            opacity: 0.8;
-        }
-
-        .connection-line {
+        /* Vinetácia — sústreďuje pohľad do stredu, dáva hĺbku */
+        .net-vignette {
             position: absolute;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(160, 196, 255, 0.6), rgba(160, 196, 255, 0.3));
-            transform-origin: left center;
+            inset: 0;
             pointer-events: none;
-            transition: opacity 0.5s;
-            z-index: 1;
+            background: radial-gradient(ellipse 80% 75% at 50% 42%, transparent 40%, rgba(7, 11, 22, 0.55) 100%);
         }
 
-        .connection-line.breaking {
-            opacity: 0;
-        }
-
-        .floating-symbol:hover {
-            opacity: 1;
-            transform: scale(1.3);
-        }
-
-        .contract-icon, .person-icon {
-            width: 22px;
-            height: 22px;
-            opacity: 1;
-            filter: drop-shadow(0 0 2px rgba(160, 196, 255, 0.5));
-        }
-
-        .person-icon {
-            stroke: currentColor;
-            stroke-width: 1.5;
-            fill: currentColor;
+        /* Veľmi jemný filmový grain (SVG fractal noise) */
+        .grain {
+            position: fixed;
+            inset: -120px;
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0.035;
+            mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+            will-change: transform;
         }
 
         .content {
@@ -103,44 +90,108 @@
         }
 
         .hero {
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             position: relative;
+            padding: 40px 24px;
         }
 
         .hero-content {
-            max-width: 800px;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 720px;
+            padding: 56px 52px;
+            position: relative;
+            background:
+                linear-gradient(155deg, rgba(20, 30, 54, 0.62), rgba(11, 18, 34, 0.5));
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            border-radius: 4px;
+            border: 1px solid rgba(143, 182, 239, 0.18);
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.05) inset,
+                0 30px 80px -30px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateY(14px);
+            animation: heroIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+        }
+
+        /* Rohové "precision" značky — terminálový vibe */
+        .hero-content::before,
+        .hero-content::after {
+            content: "";
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-color: rgba(143, 182, 239, 0.45);
+            border-style: solid;
+            border-width: 0;
+        }
+
+        .hero-content::before {
+            top: -1px;
+            left: -1px;
+            border-top-width: 1px;
+            border-left-width: 1px;
+        }
+
+        .hero-content::after {
+            bottom: -1px;
+            right: -1px;
+            border-bottom-width: 1px;
+            border-right-width: 1px;
+        }
+
+        @keyframes heroIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-eyebrow {
+            font-size: 0.72rem;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 26px;
+            font-weight: 500;
+            opacity: 0.85;
         }
 
         .hero h1 {
-            font-size: 3.5em;
-            font-weight: 300;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: clamp(2.6rem, 6vw, 4.1rem);
+            font-weight: 500;
+            margin-bottom: 14px;
+            letter-spacing: 0.01em;
+            line-height: 1.05;
         }
 
         .hero .subtitle {
-            font-size: 1.3em;
-            color: #a0c4ff;
+            font-size: 1.05rem;
+            color: var(--ink-dim);
             margin-bottom: 30px;
-            font-weight: 300;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+
+        .hero-content > p:not(.subtitle):not(.quote) {
+            font-size: 1.02rem !important;
+            line-height: 1.7 !important;
+            color: var(--ink-dim);
+            max-width: 52ch;
+            margin: 0 auto;
         }
 
         .hero .quote {
+            font-family: 'Cormorant Garamond', Georgia, serif;
             font-style: italic;
-            font-size: 1.1em;
-            color: #ccc;
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.18rem;
+            color: var(--ink);
+            margin-top: 34px;
+            padding-top: 28px;
+            border-top: 1px solid rgba(143, 182, 239, 0.18);
+            opacity: 0.82;
         }
 
         section {
@@ -402,15 +453,20 @@
     </style>
 </head>
 <body>
-    <div class="parallax-container" id="parallaxContainer"></div>
+    <div class="parallax-container" id="parallaxContainer">
+        <canvas id="netCanvas"></canvas>
+        <div class="net-vignette"></div>
+    </div>
+    <div class="grain" id="grain"></div>
 
     <div class="content">
         <section class="hero">
             <div class="hero-content">
+                <p class="hero-eyebrow">Advokátska kancelária · Legal engineering</p>
                 <h1>BW AK, s.r.o.</h1>
                 <p class="subtitle">Mgr. Branislav Welter, advokát</p>
                 <p style="font-size: 1.2em; line-height: 1.6;">
-                    Poskytujeme komplexné právne služby s dôrazom na obchodné, stavebné, 
+                    Poskytujeme komplexné právne služby s dôrazom na obchodné, stavebné,
                     energetické, daňové, trestné a rodinné právo
                 </p>
                 <p class="quote">
@@ -869,210 +925,352 @@
     </footer>
 
     <script>
-        const container = document.getElementById('parallaxContainer');
-        const symbolsCount = 150;
-        let entities = [];
-        let connections = [];
+        /* ============================================================
+           Variant A — „živá právna sieť"
+           Abstraktný legal-graph: uzly, dokumenty, podpisy, firmy,
+           parcely, transakcie. Jeden ľahký canvas, capnuté DPR,
+           ultra-subtílny pohyb, reakcia na kurzor + scroll, hover
+           fragmenty (§, schéma). 60fps, degraduje na mobile.
+           ============================================================ */
+        (function () {
+            const canvas = document.getElementById('netCanvas');
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d', { alpha: true });
 
-        class Entity {
-            constructor(type, x, y) {
-                this.type = type;
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 0.05;
-                this.vy = (Math.random() - 0.5) * 0.05;
-                this.element = null;
+            const reduceMotion = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Typológia entít — abstraktné, žiadne panáčiky
+            const T = {
+                NODE:  { glyph: null, label: 'uzol',        r: 2.4 },
+                DOC:   { glyph: '§',  label: 'dokument',    r: 3.4 },
+                SIGN:  { glyph: '✶',  label: 'podpis',      r: 3.0 },
+                FIRM:  { glyph: '▢',  label: 'firma',       r: 3.6 },
+                LAND:  { glyph: '◇',  label: 'parcela',     r: 3.4 },
+                TXN:   { glyph: '→',  label: 'transakcia',  r: 2.8 }
+            };
+            const TYPES = Object.keys(T);
+
+            let W = 0, H = 0, DPR = 1;
+            let nodes = [], edges = [];
+            const pointer = { x: -9999, y: -9999, active: false };
+            let scrollNorm = 0;          // 0..1 plynulý scroll posun
+            let scrollTarget = 0;
+            let hoverNode = null;
+            let running = true;
+            let lastT = 0;
+
+            function isMobile() {
+                return window.matchMedia('(max-width: 768px)').matches;
             }
 
-            update() {
-                // Náhodný pohyb
-                this.vx += (Math.random() - 0.5) * 0.006;
-                this.vy += (Math.random() - 0.5) * 0.006;
-
-                // Obmedzenie rýchlosti
-                const maxSpeed = 0.1;
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed > maxSpeed) {
-                    this.vx = (this.vx / speed) * maxSpeed;
-                    this.vy = (this.vy / speed) * maxSpeed;
-                }
-
-                // Aktualizácia pozície
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Odrazy
-                if (this.x < 0 || this.x > 100) this.vx *= -1;
-                if (this.y < 0 || this.y > 200) this.vy *= -1;
-
-                this.x = Math.max(0, Math.min(100, this.x));
-                this.y = Math.max(0, Math.min(200, this.y));
-
-                // Aktualizuj DOM
-                this.element.style.left = this.x + '%';
-                this.element.style.top = this.y + '%';
-            }
-        }
-
-        class Connection {
-            constructor(e1, e2) {
-                this.e1 = e1;
-                this.e2 = e2;
-                this.el = document.createElement('div');
-                this.el.className = 'connection-line';
-                container.appendChild(this.el);
-                this.opacity = 1;
-                this.age = 0;
-                this.maxAge = 300 + Math.random() * 300;
+            // Hustota siete sa škáluje plochou — mobil dostane menej
+            function targetCount() {
+                if (isMobile()) return 34;
+                const a = (W * H) / 1000;
+                return Math.max(48, Math.min(96, Math.round(a / 19)));
             }
 
-            update() {
-                this.age++;
-                if (this.age > this.maxAge) {
-                    this.opacity -= 0.02;
-                    if (this.opacity <= 0) {
-                        this.el.remove();
-                        return false;
-                    }
-                }
-
-                const r1 = this.e1.element.getBoundingClientRect();
-                const r2 = this.e2.element.getBoundingClientRect();
-                const x1 = r1.left + r1.width / 2;
-                const y1 = r1.top + r1.height / 2;
-                const x2 = r2.left + r2.width / 2;
-                const y2 = r2.top + r2.height / 2;
-
-                const len = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-                const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-
-                this.el.style.left = x1 + 'px';
-                this.el.style.top = y1 + 'px';
-                this.el.style.width = len + 'px';
-                this.el.style.transform = `rotate(${ang}deg)`;
-                this.el.style.opacity = this.opacity;
-
-                return true;
+            function pickType(i) {
+                // Väčšina sú jemné uzly; akcenty (dokument/firma/parcela…) riedke
+                const r = Math.random();
+                if (r < 0.46) return 'NODE';
+                if (r < 0.60) return 'DOC';
+                if (r < 0.72) return 'TXN';
+                if (r < 0.82) return 'FIRM';
+                if (r < 0.92) return 'LAND';
+                return 'SIGN';
             }
-        }
 
-        function createSymbols() {
-            for (let i = 0; i < symbolsCount; i++) {
-                const rand = Math.random();
-                const type = rand < 0.85 ? 'person' : rand < 0.925 ? 'contract' : 'euro';
-                const entity = new Entity(type, Math.random() * 100, Math.random() * 200);
-
-                const el = document.createElement('div');
-                el.className = 'floating-symbol ' + (i % 3 === 0 ? 'layer-back' : i % 3 === 1 ? 'layer-mid' : 'layer-front');
-                el.style.left = entity.x + '%';
-                el.style.top = entity.y + '%';
-
-                if (type === 'euro') {
-                    el.textContent = '€';
-                } else if (type === 'contract') {
-                    el.innerHTML = '<svg class="contract-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H15V15L13,19H10Z"/></svg>';
-                } else {
-                    el.innerHTML = '<svg class="person-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="6" r="3" fill="currentColor"/><line x1="12" y1="9" x2="12" y2="16" stroke-width="2"/><line x1="12" y1="16" x2="8" y2="22" stroke-width="2"/><line x1="12" y1="16" x2="16" y2="22" stroke-width="2"/><line x1="12" y1="11" x2="7" y2="14" stroke-width="2"/><line x1="12" y1="11" x2="17" y2="14" stroke-width="2"/></svg>';
-                }
-
-                entity.element = el;
-                entities.push(entity);
-                container.appendChild(el);
+            function makeNode(i) {
+                const type = pickType(i);
+                // 3 hĺbkové vrstvy → paralax + veľkostná hierarchia
+                const depth = Math.random();           // 0 = ďaleko, 1 = blízko
+                const speed = 0.06 + depth * 0.10;
+                const ang = Math.random() * Math.PI * 2;
+                return {
+                    type,
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    vx: Math.cos(ang) * speed,
+                    vy: Math.sin(ang) * speed,
+                    depth,
+                    base: T[type].r * (0.7 + depth * 0.9),
+                    phase: Math.random() * Math.PI * 2,
+                    pulse: 0
+                };
             }
-        }
 
-        function tryConnect(e1, e2) {
-            if (e1.type === 'euro' && e2.type === 'euro') return false;
-            
-            // Skontroluj či spojenie už existuje
-            const exists = connections.some(c => 
-                (c.e1 === e1 && c.e2 === e2) || (c.e1 === e2 && c.e2 === e1)
-            );
-            if (exists) return false;
-            
-            const dx = e2.x - e1.x;
-            const dy = e2.y - e1.y;
-            if (dx * dx + dy * dy < 900) {
-                connections.push(new Connection(e1, e2));
-                return true;
+            function build() {
+                nodes = [];
+                const n = targetCount();
+                for (let i = 0; i < n; i++) nodes.push(makeNode(i));
+                edges = [];
             }
-            return false;
-        }
 
-        function findNearby(entity, maxDist, typeFilter = null) {
-            return entities
-                .filter(e => e !== entity && (!typeFilter || e.type === typeFilter))
-                .map(e => {
-                    const dx = e.x - entity.x;
-                    const dy = e.y - entity.y;
-                    return { entity: e, distSq: dx * dx + dy * dy };
-                })
-                .filter(item => item.distSq < maxDist * maxDist)
-                .sort((a, b) => a.distSq - b.distSq);
-        }
-
-        function createLegalRelationship() {
-            // FÁZA 1: Vyber dokument
-            const contracts = entities.filter(e => e.type === 'contract');
-            if (contracts.length === 0) return;
-            
-            const contract = contracts[Math.floor(Math.random() * contracts.length)];
-            
-            // FÁZA 2: Nájdi 2 ľudí v blízkosti dokumentu
-            const nearbyPeople = findNearby(contract, 35, 'person');
-            if (nearbyPeople.length < 2) return;
-            
-            const person1 = nearbyPeople[0].entity;
-            const person2 = nearbyPeople[1].entity;
-            
-            // Vytvor základný vzťah: Človek 1 <-> Dokument <-> Človek 2
-            tryConnect(person1, contract);
-            tryConnect(contract, person2);
-            
-            // FÁZA 3: Pripoj ďalšieho človeka (60% šanca)
-            if (nearbyPeople.length > 2 && Math.random() < 0.6) {
-                const person3 = nearbyPeople[2].entity;
-                tryConnect(contract, person3);
+            function resize() {
+                const c = document.getElementById('parallaxContainer');
+                const rect = c.getBoundingClientRect();
+                W = Math.max(1, rect.width);
+                H = Math.max(1, rect.height);
+                DPR = Math.min(window.devicePixelRatio || 1, isMobile() ? 1.5 : 2);
+                canvas.width = Math.round(W * DPR);
+                canvas.height = Math.round(H * DPR);
+                ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+                build();
             }
-            
-            // FÁZA 4: Pripoj peniaze k vzťahu (70% šanca)
-            if (Math.random() < 0.7) {
-                const nearbyEuros = findNearby(contract, 35, 'euro');
-                if (nearbyEuros.length > 0) {
-                    const euro = nearbyEuros[0].entity;
-                    tryConnect(contract, euro);
-                    tryConnect(euro, person1);
-                    if (Math.random() < 0.5) {
-                        tryConnect(euro, person2);
+
+            // ---- Edge logika: dokumenty/firmy viažu okolité uzly ----
+            const HUBS = { DOC: 1, FIRM: 1, LAND: 1, SIGN: 1 };
+            const LINK_DIST = () => (isMobile() ? 132 : 168);
+
+            function rebuildEdges() {
+                edges.length = 0;
+                const ld = LINK_DIST();
+                const ld2 = ld * ld;
+                for (let i = 0; i < nodes.length; i++) {
+                    const a = nodes[i];
+                    const aHub = HUBS[a.type];
+                    for (let j = i + 1; j < nodes.length; j++) {
+                        const b = nodes[j];
+                        // Aspoň jeden koniec by mal byť „hub" (dokument/firma/...)
+                        if (!aHub && !HUBS[b.type]) continue;
+                        const dx = a.x - b.x, dy = a.y - b.y;
+                        const d2 = dx * dx + dy * dy;
+                        if (d2 < ld2) edges.push([i, j, Math.sqrt(d2)]);
                     }
                 }
             }
-        }
 
-        function animate() {
-            entities.forEach(e => e.update());
-            connections = connections.filter(c => c.update());
+            // Hrany prerátavame riedko (drahé O(n²)) — nie každý frame
+            let edgeTick = 0;
 
-            // Hlavná logika: Vytváranie právnych vzťahov cez dokumenty
-            if (Math.random() < 0.15) {  // 15% šanca každý frame
-                createLegalRelationship();
+            function step(dt) {
+                const drift = reduceMotion ? 0 : 1;
+                const px = pointer.active ? pointer.x : -9999;
+                const py = pointer.active ? pointer.y : -9999;
+                const scrShift = (scrollNorm - 0.5) * 26; // jemný paralaxný posun
+
+                for (let i = 0; i < nodes.length; i++) {
+                    const nd = nodes[i];
+                    nd.phase += dt * 0.0006;
+                    // Ultra-subtílny drift + mikro „dýchanie"
+                    nd.x += nd.vx * dt * 0.06 * drift;
+                    nd.y += (nd.vy * dt * 0.06 + Math.sin(nd.phase) * 0.012 * dt) * drift;
+
+                    // Kurzor jemne odtláča blízke uzly (controlled, nie flashy)
+                    if (pointer.active) {
+                        const dx = nd.x - px, dy = nd.y - py;
+                        const d2 = dx * dx + dy * dy;
+                        const R = 130;
+                        if (d2 < R * R && d2 > 0.01) {
+                            const d = Math.sqrt(d2);
+                            const f = (1 - d / R) * 0.6 * (0.4 + nd.depth);
+                            nd.x += (dx / d) * f;
+                            nd.y += (dy / d) * f;
+                        }
+                    }
+
+                    // Mäkký wrap cez okraje + scroll paralax (hlbka)
+                    const m = 40;
+                    if (nd.x < -m) nd.x = W + m;
+                    else if (nd.x > W + m) nd.x = -m;
+                    if (nd.y < -m) nd.y = H + m;
+                    else if (nd.y > H + m) nd.y = -m;
+
+                    nd._sy = nd.y + scrShift * (0.3 + nd.depth);
+                    nd.pulse *= 0.94;
+                }
+
+                if (++edgeTick % 14 === 0) rebuildEdges();
             }
 
-            // Doplnkové spontánne prepájanie blízkych entít (5% šanca)
-            if (Math.random() < 0.05) {
-                const e1 = entities[Math.floor(Math.random() * entities.length)];
-                const nearby = findNearby(e1, 25);
-                if (nearby.length > 0) {
-                    const e2 = nearby[Math.floor(Math.random() * Math.min(3, nearby.length))].entity;
-                    tryConnect(e1, e2);
+            // ---- Hover hit-test: pri najblizsom hube ukáž fragment ----
+            function pickHover() {
+                if (!pointer.active) { hoverNode = null; return; }
+                let best = null, bestD = 26 * 26;
+                for (const nd of nodes) {
+                    if (!T[nd.type].glyph) continue;
+                    const dx = nd.x - pointer.x;
+                    const dy = (nd._sy ?? nd.y) - pointer.y;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < bestD) { bestD = d2; best = nd; }
+                }
+                if (best && best !== hoverNode) best.pulse = 1;
+                hoverNode = best;
+            }
+
+            // ---- Render ----
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+
+                // Hrany — tenké, gradientové, jemne reagujú na kurzor
+                const ld = LINK_DIST();
+                ctx.lineWidth = 1;
+                for (let e = 0; e < edges.length; e++) {
+                    const a = nodes[edges[e][0]], b = nodes[edges[e][1]];
+                    const ay = a._sy ?? a.y, by = b._sy ?? b.y;
+                    const dist = edges[e][2];
+                    let alpha = (1 - dist / ld) * 0.22 * (0.5 + (a.depth + b.depth) / 2);
+
+                    // Blízkosť kurzora rozsvieti hranu (subtílne)
+                    if (pointer.active) {
+                        const mx = (a.x + b.x) / 2, my = (ay + by) / 2;
+                        const dd = Math.hypot(mx - pointer.x, my - pointer.y);
+                        if (dd < 150) alpha += (1 - dd / 150) * 0.28;
+                    }
+                    if (alpha <= 0.004) continue;
+
+                    const g = ctx.createLinearGradient(a.x, ay, b.x, by);
+                    g.addColorStop(0, `rgba(143,182,239,${alpha.toFixed(3)})`);
+                    g.addColorStop(1, `rgba(120,160,224,${(alpha * 0.55).toFixed(3)})`);
+                    ctx.strokeStyle = g;
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, ay);
+                    ctx.lineTo(b.x, by);
+                    ctx.stroke();
+                }
+
+                // Uzly — abstraktné tvary, depth-aware
+                for (let i = 0; i < nodes.length; i++) {
+                    const nd = nodes[i];
+                    const y = nd._sy ?? nd.y;
+                    const meta = T[nd.type];
+                    const r = nd.base + nd.pulse * 2.4;
+                    const a = (0.18 + nd.depth * 0.5) + nd.pulse * 0.4;
+
+                    if (nd.type === 'NODE') {
+                        ctx.fillStyle = `rgba(143,182,239,${(a * 0.7).toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(nd.x, y, r * 0.7, 0, Math.PI * 2);
+                        ctx.fill();
+                        continue;
+                    }
+
+                    // Hub-uzly: jemný halo + kontúrový glyf
+                    ctx.save();
+                    ctx.translate(nd.x, y);
+                    if (nd.pulse > 0.02) {
+                        ctx.fillStyle = `rgba(160,196,255,${(nd.pulse * 0.10).toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r + 9, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.strokeStyle = `rgba(168,200,250,${a.toFixed(3)})`;
+                    ctx.fillStyle = `rgba(150,186,240,${(a * 0.85).toFixed(3)})`;
+                    ctx.lineWidth = 1;
+
+                    if (nd.type === 'DOC') {
+                        // dokument: zaoblený obdĺžnik s „textovými" linkami
+                        const w = r * 1.5, h = r * 2;
+                        ctx.beginPath();
+                        ctx.rect(-w / 2, -h / 2, w, h);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(-w / 2 + 1.5, -h / 5); ctx.lineTo(w / 2 - 1.5, -h / 5);
+                        ctx.moveTo(-w / 2 + 1.5, h / 8);  ctx.lineTo(w / 2 - 1.5, h / 8);
+                        ctx.stroke();
+                    } else if (nd.type === 'FIRM') {
+                        // firma: štvorec s vnútorným uzlom (corporate structure naznak)
+                        const s = r * 1.7;
+                        ctx.strokeRect(-s / 2, -s / 2, s, s);
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (nd.type === 'LAND') {
+                        // parcela: kosoštvorec
+                        ctx.beginPath();
+                        ctx.moveTo(0, -r * 1.3);
+                        ctx.lineTo(r * 1.3, 0);
+                        ctx.lineTo(0, r * 1.3);
+                        ctx.lineTo(-r * 1.3, 0);
+                        ctx.closePath();
+                        ctx.stroke();
+                    } else if (nd.type === 'SIGN') {
+                        // podpis: krížová značka
+                        ctx.beginPath();
+                        ctx.moveTo(-r, -r); ctx.lineTo(r, r);
+                        ctx.moveTo(r, -r);  ctx.lineTo(-r, r);
+                        ctx.stroke();
+                    } else if (nd.type === 'TXN') {
+                        // transakcia: smerový hrot
+                        ctx.beginPath();
+                        ctx.moveTo(-r, 0); ctx.lineTo(r, 0);
+                        ctx.moveTo(r, 0);  ctx.lineTo(r - 3, -2.6);
+                        ctx.moveTo(r, 0);  ctx.lineTo(r - 3, 2.6);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                // Hover fragment — jemný „§ / schéma" náznak pri kurzore
+                if (hoverNode && !isMobile()) {
+                    const y = hoverNode._sy ?? hoverNode.y;
+                    const meta = T[hoverNode.type];
+                    ctx.save();
+                    ctx.globalAlpha = Math.min(1, 0.35 + hoverNode.pulse);
+                    ctx.font = '600 11px Inter, sans-serif';
+                    ctx.fillStyle = 'rgba(180,205,250,0.9)';
+                    ctx.textBaseline = 'middle';
+                    const tag = (meta.glyph || '·') + '  ' + meta.label;
+                    const tw = ctx.measureText(tag).width;
+                    const bx = hoverNode.x + 14, by = y - 9;
+                    ctx.fillStyle = 'rgba(14,22,42,0.78)';
+                    ctx.strokeStyle = 'rgba(143,182,239,0.35)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.rect(bx, by, tw + 16, 18);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(190,212,252,0.95)';
+                    ctx.fillText(tag, bx + 8, by + 9);
+                    ctx.restore();
                 }
             }
 
-            requestAnimationFrame(animate);
-        }
+            function frame(t) {
+                if (!running) return;
+                const dt = Math.min(48, t - (lastT || t));
+                lastT = t;
+                scrollNorm += (scrollTarget - scrollNorm) * 0.08;
+                step(dt);
+                pickHover();
+                draw();
+                requestAnimationFrame(frame);
+            }
 
-        createSymbols();
-        animate();
+            // ---- Eventy (pasívne, throttlnuté cez rAF flow) ----
+            const pc = document.getElementById('parallaxContainer');
+            window.addEventListener('pointermove', (e) => {
+                pointer.x = e.clientX;
+                pointer.y = e.clientY;
+                pointer.active = true;
+            }, { passive: true });
+            window.addEventListener('pointerleave', () => { pointer.active = false; }, { passive: true });
+            window.addEventListener('blur', () => { pointer.active = false; });
+
+            function onScroll() {
+                const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                scrollTarget = Math.min(1, window.scrollY / max);
+            }
+            window.addEventListener('scroll', onScroll, { passive: true });
+
+            let rTO;
+            window.addEventListener('resize', () => {
+                clearTimeout(rTO);
+                rTO = setTimeout(resize, 180);
+            }, { passive: true });
+
+            // Šetri batériu/CPU keď tab nie je viditeľný
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) { running = false; }
+                else if (!running) { running = true; lastT = 0; requestAnimationFrame(frame); }
+            });
+
+            resize();
+            onScroll();
+            requestAnimationFrame(frame);
+        })();
 
         // Mediálna sekcia — toggle "Zobraziť všetko / menej"
         (function () {
